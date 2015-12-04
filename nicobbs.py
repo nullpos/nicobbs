@@ -576,7 +576,7 @@ class NicoBBS(object):
             # create statuses
             response_body = self.postfilter_message(response_body)
 
-            header = u'(' + response_number + u': ' + response_name + u')'
+            header = u'(' + response_number + u')'
             if response_hash in mark_hashes:
                 header += u' ★'
             header += u'\n'
