@@ -202,7 +202,7 @@ class NicoBBS(object):
         return result
 
 # twitter
-    def update_twitter_status(self, community, status):
+    def update_twitter_status(self, community, status, image_number=0):
         auth = tweepy.OAuthHandler(self.consumer_key[community], self.consumer_secret[community])
         auth.set_access_token(self.access_key[community], self.access_secret[community])
 
@@ -210,7 +210,11 @@ class NicoBBS(object):
         # raise TwitterStatusUpdateError
 
         try:
-            tweepy.API(auth).update_status(status)
+            if image_number:
+                path = os.path.abspath("./images/"+image_number+".png").encode('us-ascii', 'ignore')
+                tweepy.API(auth).update_with_media(path, status)
+            else:
+                tweepy.API(auth).update_status(status)
         except tweepy.error.TweepError, error:
             logging.error("twitter update error: %s" % error)
             # error.reason is the list object like following:
@@ -259,7 +263,13 @@ class NicoBBS(object):
                 time.sleep(TWEET_INTERVAL)
 
             try:
-                self.update_twitter_status(community, status)
+                murl = re.search("(http:\/\/dic\.nicovideo\.jp\/.*?.png)", status)
+                if murl:
+                    status = re.sub("(http:\/\/dic\.nicovideo\.jp\/.*?.png)", "", status)
+                    number = re.search("(\d+)", status).group(1)
+                    self.update_twitter_status(community, status, number)
+                else:
+                    self.update_twitter_status(community, status)
             except TwitterDuplicateStatusUpdateError, error:
                 # status is already posted to twitter. so response status should be
                 # changed from 'unprocessed' to other, in order to avoid reprocessing
@@ -309,10 +319,12 @@ class NicoBBS(object):
 # message utility
     def prefilter_message(self, message):
         message = re.sub("<br/>", "\n", message)
+        message = re.sub("<img.*?src=\"(http:\/\/dic\.nicovideo\.jp\/.*?.png).*?>", r"\1", message)
         message = re.sub("<.*?>", "", message)
         message = re.sub("&gt;", ">", message)
         message = re.sub("&lt;", "<", message)
         message = re.sub("&amp;", "&", message)
+
 
         return message
 
@@ -320,7 +332,7 @@ class NicoBBS(object):
         message = re.sub(u"\(省略しています。全て読むにはこのリンクをクリック！\)",
                          u"(省略)", message)
         message = re.sub(u"画像をクリックして再生!!",
-                         u"(画像)", message)
+                         u"", message)
         message = re.sub(u"この絵を基にしています！",
                          u"", message)
         message = re.sub(u"\n\n", u"\n", message)
@@ -440,6 +452,19 @@ class NicoBBS(object):
     #     return str(intnum - ((intnum-1) % 30))
 
 # main, bbs
+    def save_bbs_oekaki(self, opener, community, responses):
+        for response in responses:
+            response_body = response["body"]
+            murl = re.search(".*?(http:\/\/dic\.nicovideo\.jp\/.*?.png).*?", response_body)
+            if murl:
+                image_url = murl.group(1)
+                url = COMMUNITY_BBS_URL + community
+                hash_key = re.search("(hash_key.*?)\"", opener.open(url).read()).group(1)
+                reader = opener.open(image_url + "?" + hash_key)
+                local = open("./images/"+ response["number"] +".png", 'wb')
+                local.write(reader.read())
+                local.close()
+
     def read_response_page(self, opener, community):
         url = COMMUNITY_BBS_URL + community
         if self.is_channel(community):
@@ -847,6 +872,7 @@ class NicoBBS(object):
             rawhtml = self.read_response_page(opener, community)
             responses = self.parse_response(rawhtml, community)
             self.store_response(responses, community)
+            self.save_bbs_oekaki(opener, community, responses)
             self.tweet_response(community, response_number_prefix, mark_hashes)
         except TwitterOverUpdateLimitError:
             raise
