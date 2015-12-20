@@ -12,3 +12,5 @@ log/nohup.out
 *.config*
 *.env*
 !*.sample
+
+images/*.png
