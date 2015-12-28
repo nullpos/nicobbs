@@ -202,7 +202,7 @@ class NicoBBS(object):
         return result
 
 # twitter
-    def update_twitter_status(self, community, status, image_number=0):
+    def update_twitter_status(self, community, status, in_reply_to_status_id=0, image_number=0):
         auth = tweepy.OAuthHandler(self.consumer_key[community], self.consumer_secret[community])
         auth.set_access_token(self.access_key[community], self.access_secret[community])
 
@@ -212,9 +212,15 @@ class NicoBBS(object):
         try:
             if image_number:
                 path = os.path.abspath("./images/"+image_number+".png").encode('us-ascii', 'ignore')
-                tweepy.API(auth).update_with_media(path, status)
+                if in_reply_to_status_id == 0:
+                    status_id = tweepy.API(auth).update_with_media(path, status).id
+                else:
+                    status_id = tweepy.API(auth).update_with_media(path, status, in_reply_to_status_id).id
             else:
-                tweepy.API(auth).update_status(status)
+                if in_reply_to_status_id == 0:
+                    status_id = tweepy.API(auth).update_status(status).id
+                else:
+                    status_id = tweepy.API(auth).update_status(status, in_reply_to_status_id).id
         except tweepy.error.TweepError, error:
             logging.error("twitter update error: %s" % error)
             # error.reason is the list object like following:
@@ -255,8 +261,9 @@ class NicoBBS(object):
                     raise TwitterSpamStatusUpdateError("possible spam")
 
             raise TwitterStatusUpdateError()
+        return str(status_id)
 
-    def tweet_statuses(self, community, statuses, update_handler, update_target, tweet_count=0):
+    def tweet_statuses(self, community, statuses, update_handler, update_target, tweet_count=0, status_id=0):
         for status in statuses:
             if 0 < tweet_count:
                 logging.debug("sleeping %d secs before next tweet..." % TWEET_INTERVAL)
@@ -267,9 +274,9 @@ class NicoBBS(object):
                 if murl:
                     status = re.sub("(http:\/\/dic\.nicovideo\.jp\/.*?.png)", "", status)
                     number = re.search("(\d+)", status).group(1)
-                    self.update_twitter_status(community, status, number)
+                    status_id = self.update_twitter_status(community, status, status_id, number)
                 else:
-                    self.update_twitter_status(community, status)
+                    status_id = self.update_twitter_status(community, status, status_id)
             except TwitterDuplicateStatusUpdateError, error:
                 # status is already posted to twitter. so response status should be
                 # changed from 'unprocessed' to other, in order to avoid reprocessing
@@ -296,7 +303,7 @@ class NicoBBS(object):
                 logging.error("twitter status update error, unknown: %s" % error)
                 break
             else:
-                update_handler(update_target, STATUS_COMPLETED)
+                update_handler(update_target, STATUS_COMPLETED, status_id)
                 logging.info("status updated: [%s]" % status)
 
             tweet_count += 1
@@ -367,10 +374,15 @@ class NicoBBS(object):
             sort=[("number", 1)])
         return responses
 
-    def update_response_status(self, response, status):
+    def get_response_with_community_and_number(self, community, number):
+        responses = self.database.response.find(
+            {"community": community, "number": number})
+        return responses
+
+    def update_response_status(self, response, status, status_id=0):
         self.database.response.update(
             {"community": response["community"], "number": response["number"]},
-            {"$set": {"status": status}})
+            {"$set": {"status": status, "status_id": status_id}})
 
     # reserved live
     def register_live(self, live):
@@ -386,10 +398,10 @@ class NicoBBS(object):
         lives = self.database.live.find({"community": community, "status": status})
         return lives
 
-    def update_live_status(self, live, status):
+    def update_live_status(self, live, status, status_id=0):
         self.database.live.update(
             {"community": live["community"], "link": live["link"]},
-            {"$set": {"status": status}})
+            {"$set": {"status": status, "status_id": status_id}})
 
     # news
     def register_news(self, news):
@@ -405,10 +417,10 @@ class NicoBBS(object):
         news = self.database.news.find({"community": community, "status": status})
         return news
 
-    def update_news_status(self, news, status):
+    def update_news_status(self, news, status, status_id=0):
         self.database.news.update(
             {"community": news["community"], "date": news["date"]},
-            {"$set": {"status": status}})
+            {"$set": {"status": status, "status_id": status_id}})
 
     # video
     def register_video(self, video):
@@ -424,10 +436,10 @@ class NicoBBS(object):
         videos = self.database.video.find({"community": community, "status": status})
         return videos
 
-    def update_video_status(self, video, status):
+    def update_video_status(self, video, status, status_id=0):
         self.database.video.update(
             {"community": video["community"], "link": video["link"]},
-            {"$set": {"status": status}})
+            {"$set": {"status": status, "status_id": status_id}})
 
 # filter
     def contains_ng_words(self, message):
@@ -609,8 +621,20 @@ class NicoBBS(object):
             statuses = nicoutil.create_twitter_statuses(
                 header, u'[続き] ', response_body, u' [続く]')
 
-            tweet_count = self.tweet_statuses(
-                community, statuses, self.update_response_status, response, tweet_count)
+            anchor = re.search(">>(\d+)", statuses[0])
+            if anchor:
+                num_response = self.get_response_with_community_and_number(community, anchor.group(1))
+                if num_response.count() == 0:
+                    tweet_count = self.tweet_statuses(
+                        community, statuses, self.update_response_status, response, tweet_count)
+                else:
+                    r = num_response.next()
+                    tweet_count = self.tweet_statuses(
+                        community, statuses, self.update_response_status, response, tweet_count, r['status_id'])
+            else:
+                tweet_count = self.tweet_statuses(
+                    community, statuses, self.update_response_status, response, tweet_count)
+
 
             if limit and limit <= tweet_count:
                 logging.info("breaking tweet processing, limit: %d tweet_count: %d" %
