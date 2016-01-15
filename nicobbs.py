@@ -91,11 +91,11 @@ class NicoBBS(object):
         logging.config.fileConfig(config_file)
         logging.debug("initialized logger w/ file %s" % config_file)
 
-        self.mail, self.password, database_name, self.ng_words = (
+        self.mail, self.password, database_name, self.ng_words, self.ng_hash = (
             self.get_basic_config(config_file))
         logging.debug(
-            "mail: %s password: xxxxxxxxxx database_name: %s ng_words: %s" %
-            (self.mail, database_name, self.ng_words))
+                "mail: %s password: xxxxxxxxxx database_name: %s ng_words: %s ng_hash: %s"%
+            (self.mail, database_name, self.ng_words, self.ng_hash))
 
         self.target_communities = []
         self.consumer_key = {}
@@ -154,8 +154,13 @@ class NicoBBS(object):
             ng_words = []
         else:
             ng_words = ng_words.split(',')
+        ng_hash= unicode(config.get(section, "ng_hash"), 'utf-8')
+        if ng_hash == '':
+            ng_hash = []
+        else:
+            ng_hash = ng_hash.split(',')
 
-        return mail, password, database_name, ng_words
+        return mail, password, database_name, ng_words, ng_hash
 
     def get_community_config(self, config_file):
         result = []
@@ -455,6 +460,12 @@ class NicoBBS(object):
                 return True
         return False
 
+    def contains_ng_hash(self, hash_id):
+        for word in self.hash_id:
+            if word == hash_id:
+                return True
+        return False
+
     def is_deleted_message(self, message):
         return message == DELETED_MESSAGE
 
@@ -599,9 +610,10 @@ class NicoBBS(object):
             response_hash = response["hash"]
 
             if (self.contains_ng_words(response_body) or
+                    self.contains_ng_hash(response_hash) or
                     self.contains_too_many_link(response_body)):
                 logging.debug(
-                    "response contains ng word/too many video, so skip: [%s]" % response_body)
+                    "response contains ng word | hash/too many video, so skip: [%s]" % response_body)
                 self.update_response_status(response, STATUS_SPAM)
                 continue
 
