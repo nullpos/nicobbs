@@ -4,6 +4,7 @@ password = p@ssword
 database_name = your_dbname
 # ng_words = ng_word_1,ng_word_2,...
 ng_words = 
+ng_hash = 
 
 [community-co12345]
 consumer_key = xxx
