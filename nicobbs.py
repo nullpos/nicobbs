@@ -641,8 +641,13 @@ class NicoBBS(object):
                         community, statuses, self.update_response_status, response, tweet_count)
                 else:
                     r = num_response.next()
-                    tweet_count = self.tweet_statuses(
-                        community, statuses, self.update_response_status, response, tweet_count, r['status_id'])
+                    if 'status_id' in r:
+                      tweet_count = self.tweet_statuses(
+                          community, statuses, self.update_response_status, response, tweet_count, r['status_id'])
+                    else:
+                        tweet_count = self.tweet_statuses(
+                            community, statuses, self.update_response_status, response, tweet_count)
+
             else:
                 tweet_count = self.tweet_statuses(
                     community, statuses, self.update_response_status, response, tweet_count)
