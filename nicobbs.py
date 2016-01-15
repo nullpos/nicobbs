@@ -461,7 +461,7 @@ class NicoBBS(object):
         return False
 
     def contains_ng_hash(self, hash_id):
-        for word in self.hash_id:
+        for word in self.ng_hash:
             if word == hash_id:
                 return True
         return False
