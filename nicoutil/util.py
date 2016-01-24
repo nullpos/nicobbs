@@ -10,10 +10,12 @@ REGEXP_VIDEO = r'sm\d{3,}'
 REGEXP_LIVE = r'lv\d{3,}'
 REGEXP_SEIGA = r'im\d{3,}'
 REGEXP_COMMUNITY = r'co\d{2,}'
+REGEXP_MANGA = r'mg\d{3,}'
 BASE_URL_VIDEO = u'http://www.nicovideo.jp/watch/'
 BASE_URL_LIVE = u'http://live.nicovideo.jp/watch/'
 BASE_URL_SEIGA = u'http://seiga.nicovideo.jp/seiga/'
 BASE_URL_COMMUNITY = u'http://com.nicovideo.jp/community/'
+BASE_URL_MANGA = u'http://seiga.nicovideo.jp/watch/'
 
 # regexp for...
 # - http(s), http://www.megasoft.co.jp/mifes/seiki/s310.html
@@ -73,6 +75,8 @@ def replace_body(body):
                   BASE_URL_SEIGA + r'\1', body)
     body = re.sub(r'>>(' + REGEXP_COMMUNITY + r')\n' + REGEXP_COMMUNITY,
                   BASE_URL_COMMUNITY + r'\1', body)
+    body = re.sub(r'>>(' + REGEXP_MANGA + r')\n' + REGEXP_MANGA,
+                  BASE_URL_MANGA + r'\1', body)
 
     body = re.sub(r'\n+$', '', body)
 
