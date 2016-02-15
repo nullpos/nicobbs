@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import xml.etree.ElementTree as ET
 
 TWITTER_STATUS_MAX_LENGTH = 140
 TCO_URL_LENGTH = 23
@@ -18,6 +19,9 @@ BASE_URL_SEIGA = u'http://seiga.nicovideo.jp/seiga/'
 BASE_URL_COMMUNITY = u'http://com.nicovideo.jp/community/'
 BASE_URL_MANGA = u'http://seiga.nicovideo.jp/watch/'
 BASE_URL_MYLIST = u'http://www.nicovideo.jp/mylist/'
+
+API_VIDEO_INFO = u'http://ext.nicovideo.jp/api/getthumbinfo/'
+API_LIVE_INFO = u'http://live.nicovideo.jp/api/getplayerstatus/'
 
 # regexp for...
 # - http(s), http://www.megasoft.co.jp/mifes/seiki/s310.html
@@ -86,15 +90,54 @@ def replace_body(body):
 
     return body
 
+def get_video_status(opener, video_id):
+    url = API_VIDEO_INFO + video_id
+    xml = ET.fromstring(opener.open(url).read())
+    if xml.attrib.get('status') == 'fail':
+        return BASE_URL_VIDEO + video_id
+    thumb = xml.find('thumb')
+    title = thumb.find('title').text
+    name = thumb.find('user_nickname').text
+
+    return ('[%s:%s]\n' + BASE_URL_VIDEO +'%s') % (title, name, video_id)
+
+def get_live_status(opener, live_id):
+    url = API_LIVE_INFO + live_id
+    xml = ET.fromstring(opener.open(url).read())
+    if xml.attrib.get('status') == 'fail':
+        return BASE_URL_LIVE + live_id
+    stream = xml.find('stream')
+    title = stream.find('title').text
+    name = stream.find('owner_name').text
+
+    return ('[%s:%s]\n' + BASE_URL_LIVE + '%s') % (title, name, live_id)
+
+def parse_video_info(opener, body):
+    match = re.findall(BASE_URL_VIDEO + '([sn]m\d{3,})', body)
+    for video_id in match:
+        text = get_video_status(opener, video_id)
+        body = re.sub(BASE_URL_VIDEO + video_id, text, body)
+    return body
+
+def parse_live_info(opener, body):
+    match = re.findall(BASE_URL_LIVE + '(lv\d{3,})', body)
+    for live_id in match:
+        text = get_live_status(opener, live_id)
+        body = re.sub(BASE_URL_LIVE + live_id, text, body)
+    return body
+
 
 # public methods
-def create_twitter_statuses(header, continued_mark, body, continue_mark):
+def create_twitter_statuses(header, continued_mark, body, continue_mark, opener=None):
     available_length = TWITTER_STATUS_MAX_LENGTH - len(header + continued_mark + continue_mark)
     # print available_length
 
     # print 'before replace: [' + body + ']'
     body = replace_body(body)
     # print 'after replace: [' + body + ']'
+    if opener:
+        body = parse_video_info(opener, body)
+        body = parse_live_info(opener, body)
 
     statuses_with_body = []
     status_buffer = u""

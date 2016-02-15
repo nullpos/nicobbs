@@ -593,7 +593,7 @@ class NicoBBS(object):
         logging.debug("registered: %s" % registered_responses)
         logging.info("finished to store responses.")
 
-    def tweet_response(self, community, response_number_prefix="", mark_hashes=[], limit=0):
+    def tweet_response(self, opener, community, response_number_prefix="", mark_hashes=[], limit=0):
         unprocessed_responses = self.get_responses_with_community_and_status(
             community, STATUS_UNPROCESSED)
         tweet_count = 0
@@ -631,7 +631,7 @@ class NicoBBS(object):
             header += u'\n'
 
             statuses = nicoutil.create_twitter_statuses(
-                header, u'[続き] ', response_body, u' [続く]')
+                header, u'[続き] ', response_body, u' [続く]', opener)
 
             anchor = re.search(">>(\d+)", statuses[0])
             if anchor:
@@ -914,7 +914,7 @@ class NicoBBS(object):
             responses = self.parse_response(rawhtml, community)
             self.store_response(responses, community)
             self.save_bbs_oekaki(opener, community, responses)
-            self.tweet_response(community, response_number_prefix, mark_hashes)
+            self.tweet_response(opener, community, response_number_prefix, mark_hashes)
         except TwitterOverUpdateLimitError:
             raise
         except urllib2.HTTPError, error:
