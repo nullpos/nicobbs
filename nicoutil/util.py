@@ -110,6 +110,8 @@ def get_live_status(opener, live_id):
     title = stream.find('title').text
     name = stream.find('owner_name').text
 
+    if name is None:
+        return ('[%s]\n' + BASE_URL_LIVE + '%s') % (title, live_id)
     return ('[%s:%s]\n' + BASE_URL_LIVE + '%s') % (title, name, live_id)
 
 def parse_video_info(opener, body):
