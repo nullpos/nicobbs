@@ -119,7 +119,7 @@ def get_live_status(opener, live_id):
 
 def parse_video_info(opener, body):
     match = re.findall(BASE_URL_VIDEO + '([sn]m\d{3,})', body)
-    for video_id in match:
+    for video_id in list(set(match)):
         text = get_video_status(opener, video_id)
         body = re.sub(BASE_URL_VIDEO + video_id, text, body)
     return body
@@ -127,7 +127,7 @@ def parse_video_info(opener, body):
 
 def parse_live_info(opener, body):
     match = re.findall(BASE_URL_LIVE + '(lv\d{3,})', body)
-    for live_id in match:
+    for live_id in list(set(match)):
         text = get_live_status(opener, live_id)
         body = re.sub(BASE_URL_LIVE + live_id, text, body)
     return body
