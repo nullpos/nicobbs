@@ -90,6 +90,7 @@ def replace_body(body):
 
     return body
 
+
 def get_video_status(opener, video_id):
     url = API_VIDEO_INFO + video_id
     xml = ET.fromstring(opener.open(url).read())
@@ -99,7 +100,8 @@ def get_video_status(opener, video_id):
     title = thumb.find('title').text
     name = thumb.find('user_nickname').text
 
-    return ('[%s:%s]\n' + BASE_URL_VIDEO +'%s') % (title, name, video_id)
+    return ('[%s:%s]\n' + BASE_URL_VIDEO + '%s') % (title, name, video_id)
+
 
 def get_live_status(opener, live_id):
     url = API_LIVE_INFO + live_id
@@ -114,12 +116,14 @@ def get_live_status(opener, live_id):
         return ('[%s]\n' + BASE_URL_LIVE + '%s') % (title, live_id)
     return ('[%s:%s]\n' + BASE_URL_LIVE + '%s') % (title, name, live_id)
 
+
 def parse_video_info(opener, body):
     match = re.findall(BASE_URL_VIDEO + '([sn]m\d{3,})', body)
     for video_id in match:
         text = get_video_status(opener, video_id)
         body = re.sub(BASE_URL_VIDEO + video_id, text, body)
     return body
+
 
 def parse_live_info(opener, body):
     match = re.findall(BASE_URL_LIVE + '(lv\d{3,})', body)

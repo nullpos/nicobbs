@@ -56,7 +56,7 @@ LOG_SEPARATOR = "---------- ---------- ---------- ---------- ----------"
 
 
 class TwitterStatusUpdateError(Exception):
-# magic methods
+    # magic methods
     def __init__(self, message="", code=0):
         self.message = message
         self.code = code
@@ -82,7 +82,7 @@ class TwitterOverUpdateLimitError(TwitterStatusUpdateError):
 
 
 class NicoBBS(object):
-# life cycle
+    # life cycle
     def __init__(self):
         config_file = NICOBBS_CONFIG
         if not os.path.exists(config_file):
@@ -94,7 +94,7 @@ class NicoBBS(object):
         self.mail, self.password, database_name, self.ng_words, self.ng_hash = (
             self.get_basic_config(config_file))
         logging.debug(
-                "mail: %s password: xxxxxxxxxx database_name: %s ng_words: %s ng_hash: %s"%
+            "mail: %s password: xxxxxxxxxx database_name: %s ng_words: %s ng_hash: %s" %
             (self.mail, database_name, self.ng_words, self.ng_hash))
 
         self.target_communities = []
@@ -154,7 +154,7 @@ class NicoBBS(object):
             ng_words = []
         else:
             ng_words = ng_words.split(',')
-        ng_hash= unicode(config.get(section, "ng_hash"), 'utf-8')
+        ng_hash = unicode(config.get(section, "ng_hash"), 'utf-8')
         if ng_hash == '':
             ng_hash = []
         else:
@@ -216,7 +216,7 @@ class NicoBBS(object):
 
         try:
             if image_number:
-                path = os.path.abspath("./images/"+image_number+".png").encode('us-ascii', 'ignore')
+                path = os.path.abspath("./images/" + image_number + ".png").encode('us-ascii', 'ignore')
                 if in_reply_to_status_id == 0:
                     status_id = tweepy.API(auth).update_with_media(path, status).id
                 else:
@@ -336,7 +336,6 @@ class NicoBBS(object):
         message = re.sub("&gt;", ">", message)
         message = re.sub("&lt;", "<", message)
         message = re.sub("&amp;", "&", message)
-
 
         return message
 
@@ -484,7 +483,7 @@ class NicoBBS(object):
                 url = COMMUNITY_BBS_URL + community
                 hash_key = re.search("(hash_key.*?)\"", opener.open(url).read()).group(1)
                 reader = opener.open(image_url + "?" + hash_key)
-                local = open("./images/"+ response["number"] +".png", 'wb')
+                local = open("./images/" + response["number"] + ".png", 'wb')
                 local.write(reader.read())
                 local.close()
 
@@ -605,7 +604,7 @@ class NicoBBS(object):
             logging.debug("processing response #%s" % response["number"])
 
             response_number = response_number_prefix + response["number"]
-            response_name = response["name"]
+            # response_name = response["name"]
             response_body = response["body"]
             response_hash = response["hash"]
 
@@ -642,8 +641,8 @@ class NicoBBS(object):
                 else:
                     r = num_response.next()
                     if 'status_id' in r:
-                      tweet_count = self.tweet_statuses(
-                          community, statuses, self.update_response_status, response, tweet_count, r['status_id'])
+                        tweet_count = self.tweet_statuses(
+                            community, statuses, self.update_response_status, response, tweet_count, r['status_id'])
                     else:
                         tweet_count = self.tweet_statuses(
                             community, statuses, self.update_response_status, response, tweet_count)
@@ -651,7 +650,6 @@ class NicoBBS(object):
             else:
                 tweet_count = self.tweet_statuses(
                     community, statuses, self.update_response_status, response, tweet_count)
-
 
             if limit and limit <= tweet_count:
                 logging.info("breaking tweet processing, limit: %d tweet_count: %d" %
@@ -748,7 +746,7 @@ class NicoBBS(object):
                       live["link"])
 
             tweet_count = self.tweet_statuses(
-                    community, [status], self.update_live_status, live, tweet_count)
+                community, [status], self.update_live_status, live, tweet_count)
 
             if limit and limit <= tweet_count:
                 logging.info("breaking tweet processing, limit: %d tweet_count: %d" %
